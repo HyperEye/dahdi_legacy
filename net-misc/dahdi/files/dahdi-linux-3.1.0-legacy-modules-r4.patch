@@ -1,0 +1,79 @@
+--- a/drivers/dahdi/Kconfig     2023-02-19 19:58:13.066458003 -0600
+--- b/drivers/dahdi/Kconfig     2023-02-19 19:58:13.066458003 -0600
+@@ -222,26 +222,5 @@
+ 
+          If unsure, say Y.
+ 
+-config DAHDI_WCTDM
+-       tristate "Digium Wildcard TDM400P Support"
+-       depends on DAHDI && PCI
+-       default DAHDI
+-       ---help---
+-         This driver provides support for the Digium Wildcard TDM400P.
+-
+-         To compile this driver as a module, choose M here: the
+-         module will be called wctdm.
+-
+-         If unsure, say Y.
+-
+-config DAHDI_WCFXO
+-       tristate "Digium Wildcard X100P Support"
+-       depends on DAHDI && PCI
+-       default DAHDI
+-       ---help---
+-         To compile this driver as a module, choose M here: the
+-         module will be called wcfxo.
+-
+-         If unsure, say Y.
+ source "drivers/dahdi/xpp/Kconfig"
+--- a/drivers/dahdi/Kbuild	2020-11-18 15:42:08.885983060 -0600
++++ b/drivers/dahdi/Kbuild	2020-11-18 15:44:36.374101544 -0600
+@@ -35,6 +35,8 @@
+   CFLAGS_wcaxx-base.o += -DHOTPLUG_FIRMWARE
+ endif
+ 
++obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCTDM)		+= wctdm.o
++obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCFXO)		+= wcfxo.o
+ obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_VOICEBUS)		+= voicebus/
+ obj-$(DAHDI_BUILD_ALL)$(CONFIG_DAHDI_WCB4XXP)		+= wcb4xxp/
+ 
+--- a/drivers/dahdi/wcfxo.c	2020-11-18 16:00:47.257261814 -0600
++++ b/drivers/dahdi/wcfxo.c	2020-11-18 16:05:16.687564955 -0600
+@@ -428,7 +428,7 @@
+ static void wcfxo_stop_dma(struct wcfxo *wc);
+ static void wcfxo_restart_dma(struct wcfxo *wc);
+ 
+-DAHDI_IRQ_HANDLER(wcfxo_interrupt)
++static irqreturn_t wcfxo_interrupt(int irq, void *dev_id)
+ {
+ 	struct wcfxo *wc = dev_id;
+ 	unsigned char ints;
+@@ -1079,7 +1079,7 @@
+ 			printk(KERN_INFO "%d: %s\n", x, fxo_modes[x].name);
+ 		return -ENODEV;
+ 	}
+-	res = dahdi_pci_module(&wcfxo_driver);
++	res = pci_register_driver(&wcfxo_driver);
+ 	if (res)
+ 		return -ENODEV;
+ 	return 0;
+--- a/drivers/dahdi/wctdm.c	2020-11-18 16:05:28.505490559 -0600
++++ b/drivers/dahdi/wctdm.c	2020-11-18 16:06:42.123027177 -0600
+@@ -1132,7 +1132,7 @@
+ 	fxs->lastrxhook = hook;
+ }
+ 
+-DAHDI_IRQ_HANDLER(wctdm_interrupt)
++static irqreturn_t wctdm_interrupt(int irq, void *dev_id)
+ {
+ 	struct wctdm *wc = dev_id;
+ 	unsigned char ints;
+@@ -2849,7 +2849,7 @@
+ 		battthresh = fxo_modes[_opermode].battthresh;
+ 	}
+ 
+-	res = dahdi_pci_module(&wctdm_driver);
++	res = pci_register_driver(&wctdm_driver);
+ 	if (res)
+ 		return -ENODEV;
+ 	return 0;
